@@ -1,1 +1,4 @@
-venv/
+venv
+models/locomotion_classifier/__pycache__
+models/rotation_classifier/__pycache__
+models/speed_classifier/__pycache__

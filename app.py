@@ -3,6 +3,12 @@ os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
 import argparse # custom arguments
 import csv # data collection
+import torch
+
+# Classifiers
+from models.locomotion_classifier.locomotion_classifier import LocomotionClassifier
+from models.rotation_classifier.rotation_classifier import RotationClassifier
+from models.speed_classifier.speed_classifier import SpeedClassifier
 
 import mediapipe as mp
 import cv2 as cv
@@ -16,6 +22,9 @@ def get_args():
 
     args = parser.parse_args()
     return args
+
+def extract_landmarks():
+    return ""
 
 def main():
     # Grab arguments for parsing
@@ -35,10 +44,22 @@ def main():
                            # or it can be two hands for movement and rotation 
     )
 
+    locomotion_classifier = LocomotionClassifier()
+    rotation_classifier = RotationClassifier()
+    speed_classifier = SpeedClassifier()
+
     # Collect the classification labels
-    with open('./navigation_labels.csv', encoding='utf-8-sig') as f:
-        navigation_labels = csv.reader(f)
-        navigation_labels_list = [row[0] for row in navigation_labels]
+    with open('models/locomotion_classifier/locomotion_labels.csv', encoding='utf-8-sig') as f:
+        locomotion_labels = csv.reader(f)
+        locomotion_labels_list = [row[0] for row in locomotion_labels]
+
+    with open('models/rotation_classifier/rotation_labels.csv', encoding='utf-8-sig') as f:
+        rotation_labels = csv.reader(f)
+        rotation_labels_list = [row[0] for row in rotation_labels]
+
+    with open('models/speed_classifier/speed_labels.csv', encoding='utf-8-sig') as f:
+        speed_labels = csv.reader(f)
+        speed_labels_list = [row[0] for row in speed_labels]
 
     # Continuously run gesture recognition system
     while True:
@@ -64,6 +85,13 @@ def main():
 
         if results.multi_hand_landmarks is not None:
             for hand_landmarks, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
+                # Extract the hand landmarks
+
+                # Preprocess the landmarks for the Pytorch model
+
+                # Run the pytorch model to classify the gesture
+
+                # Display result in frame
                 mp_drawing.draw_landmarks(
                 frame,
                 hand_landmarks,
