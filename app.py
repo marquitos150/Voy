@@ -26,14 +26,40 @@ def main():
     # Grab arguments for parsing
     args = get_args()
     
+    # Other important variables such as for debugging
+    recording_on = False
+    curr_class_id = None  # To store the label for the current gesture being recorded
+    video_uuid = None
+    frame_count = 0
+
     cap = None
     if args.video:
-        cap = cv.VideoCapture(args.video)
+        # Capture the video and get the class id for the gesture
+        cap = cv.VideoCapture(f"video_dataset\{args.video}")
         if not cap.isOpened():
             print(f"Error: Unable to open video file {args.video}")
             return
         
+        # Capture gesture from args.video string ending at '_'
+        gesture = args.video.split("_")[0]
+        if gesture == "forward":
+            curr_class_id = 0
+        elif gesture == "backward":
+            curr_class_id = 1
+        elif gesture == "left":
+            curr_class_id = 2
+        elif gesture == "right":
+            curr_class_id = 3
+        elif gesture == "up":
+            curr_class_id = 4
+        elif gesture == "down":
+            curr_class_id = 5
+        else:
+            print("Unknown gesture")
+            return
+
         print(f"Processing video: {args.video}")
+        video_uuid = str(uuid.uuid4)
     else:
         # Prepare the camera
         cap = cv.VideoCapture(0)
@@ -49,8 +75,7 @@ def main():
     mp_drawing = mp.solutions.drawing_utils
     hands = mp_hands.Hands(
         static_image_mode = False, # needed for processing a continuous stream of images
-        max_num_hands = 2, # one hand for movement; another hand for rotation
-                           # or it can be two hands for movement and rotation 
+        max_num_hands = 1,
     )
 
     locomotion_classifier = LocomotionClassifier()
@@ -60,22 +85,15 @@ def main():
         locomotion_labels = csv.reader(f)
         locomotion_labels_list = [row[0] for row in locomotion_labels]
 
-    # Other important variables such as for debugging
-    recording_on = False
-    curr_class_id = None  # To store the label for the current gesture being recorded
-    video_uuid = None
-    frame_count = 0
-
-    # Continuously run gesture recognition system
+    # Continuously run demo for gesture recognition system
     while cap.isOpened():
         # Exit case
         key = cv.waitKey(10)
-        if key == 27:  # ESC
+        if key == 27:  # ESC or external video finishes processing
             break
         
         # Toggle recording with 'r'
         if key == ord('r') and not args.video:
-            print("HELLO ITS ME")
             recording_on = not recording_on
             if recording_on:
                 curr_class_id = input("To begin recording, please enter the class ID # for the gesture (0: Forward, 1: Backward, 2: Left, 3: Right, 4: Up, 5: Down): ")
@@ -88,7 +106,7 @@ def main():
         # Capture frame
         ret, frame = cap.read()
         if not ret:
-            continue
+            break
         if not args.video:
             frame = cv.flip(frame, 1) # Flip or mirror the display
         
@@ -104,12 +122,11 @@ def main():
         if results.multi_hand_landmarks is not None:
             for hand_landmarks, handedness in zip(results.multi_hand_landmarks, results.multi_handedness):
                 # Display result in frame
-                if not args.video:
-                    mp_drawing.draw_landmarks(
-                        frame,
-                        hand_landmarks,
-                        mp_hands.HAND_CONNECTIONS
-                    )
+                mp_drawing.draw_landmarks(
+                    frame,
+                    hand_landmarks,
+                    mp_hands.HAND_CONNECTIONS
+                )
 
                 if recording_on or args.video:
                     # Process video frame for collecting data
@@ -121,6 +138,7 @@ def main():
 
     cap.release()
     cv.destroyAllWindows()
+    print("Done")
 
 def process_video_frame(cap, curr_class_id, video_uuid, frame_count, hand_landmarks):
     # Collect frame data
